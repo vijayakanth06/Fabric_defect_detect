@@ -1,0 +1,4 @@
+frame_number,timestamp,elapsed_sec,predicted_class,confidence,bbox_x,bbox_y,bbox_w,bbox_h,frame_path
+71,2026-02-28T00:13:41,3.71,vertical,0.8632,0,0,1280,720,C:\Users\vikym\Documents\GitHub\Fabric_defect_detect\Fabric_defect_detect\sessions\session_20260228_001337\frames\frame_000071_vertical_0.86.jpg
+103,2026-02-28T00:13:42,5.44,vertical,0.9063,0,0,1280,720,C:\Users\vikym\Documents\GitHub\Fabric_defect_detect\Fabric_defect_detect\sessions\session_20260228_001337\frames\frame_000103_vertical_0.91.jpg
+135,2026-02-28T00:13:44,7.05,vertical,0.9165,0,0,1280,720,C:\Users\vikym\Documents\GitHub\Fabric_defect_detect\Fabric_defect_detect\sessions\session_20260228_001337\frames\frame_000135_vertical_0.92.jpg

@@ -1,0 +1,52 @@
+{
+  "session_id": "20260228_001337",
+  "start_time": "2026-02-28T00:13:37",
+  "end_time": "2026-02-28T00:13:48",
+  "duration_sec": 11.27,
+  "total_frames": 216,
+  "defect_count": 3,
+  "events": [
+    {
+      "frame_number": 71,
+      "timestamp": "2026-02-28T00:13:41",
+      "elapsed_sec": 3.71,
+      "predicted_class": "vertical",
+      "confidence": 0.8632,
+      "bbox": [
+        0,
+        0,
+        1280,
+        720
+      ],
+      "frame_path": "C:\\Users\\vikym\\Documents\\GitHub\\Fabric_defect_detect\\Fabric_defect_detect\\sessions\\session_20260228_001337\\frames\\frame_000071_vertical_0.86.jpg"
+    },
+    {
+      "frame_number": 103,
+      "timestamp": "2026-02-28T00:13:42",
+      "elapsed_sec": 5.44,
+      "predicted_class": "vertical",
+      "confidence": 0.9063,
+      "bbox": [
+        0,
+        0,
+        1280,
+        720
+      ],
+      "frame_path": "C:\\Users\\vikym\\Documents\\GitHub\\Fabric_defect_detect\\Fabric_defect_detect\\sessions\\session_20260228_001337\\frames\\frame_000103_vertical_0.91.jpg"
+    },
+    {
+      "frame_number": 135,
+      "timestamp": "2026-02-28T00:13:44",
+      "elapsed_sec": 7.05,
+      "predicted_class": "vertical",
+      "confidence": 0.9165,
+      "bbox": [
+        0,
+        0,
+        1280,
+        720
+      ],
+      "frame_path": "C:\\Users\\vikym\\Documents\\GitHub\\Fabric_defect_detect\\Fabric_defect_detect\\sessions\\session_20260228_001337\\frames\\frame_000135_vertical_0.92.jpg"
+    }
+  ]
+}

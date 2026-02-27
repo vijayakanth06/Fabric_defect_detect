@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Fabric Defect Detector v2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet"/>
+
+  <style>
+    :root {
+      --bg:       #0b0f1a;
+      --surface:  #111828;
+      --border:   #1e2d50;
+      --accent:   #3b82f6;
+      --danger:   #ef4444;
+      --success:  #10b981;
+      --text:     #e2e8f0;
+      --muted:    #64748b;
+      --panel:    #161f35;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── TOPBAR ── */
+    header {
+      background: linear-gradient(135deg, #0d1527, #111828);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .logo { display: flex; align-items: center; gap: 12px; }
+    .logo h1 { font-size: 1.3rem; font-weight: 700; color: var(--text); }
+    .logo h1 span { color: var(--accent); font-size: .85em; }
+    .status-pill {
+      padding: 4px 14px; border-radius: 20px; font-size: .8rem; font-weight: 600;
+      background: #1e3a1e; color: var(--success); border: 1px solid var(--success);
+      transition: all .3s;
+    }
+    .status-pill.defect {
+      background: #3a1e1e; color: var(--danger); border-color: var(--danger);
+      animation: pill-pulse 1s infinite;
+    }
+    @keyframes pill-pulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,.5); }
+      50%      { box-shadow: 0 0 0 6px rgba(239,68,68,0); }
+    }
+
+    /* ── LAYOUT ── */
+    .container { display: grid; grid-template-columns: 1fr 380px; gap: 20px;
+                 padding: 20px 24px; max-width: 1600px; margin: 0 auto; }
+
+    /* ── CAMERA PANEL ── */
+    .cam-panel { display: flex; flex-direction: column; gap: 16px; }
+
+    .cam-wrapper {
+      position: relative; border-radius: 14px; overflow: hidden;
+      border: 3px solid var(--border);
+      transition: border-color .25s, box-shadow .25s;
+      background: #000;
+    }
+    .cam-wrapper.ok     { border-color: #1e3a5f; box-shadow: none; }
+    .cam-wrapper.defect {
+      border-color: var(--danger);
+      box-shadow: 0 0 30px 8px rgba(239,68,68,.7),
+                  0 0 60px 18px rgba(239,68,68,.3);
+      animation: cam-pulse 1s ease-in-out infinite;
+    }
+    @keyframes cam-pulse {
+      0%,100% { box-shadow: 0 0 24px 6px rgba(239,68,68,.7),
+                             0 0 52px 14px rgba(239,68,68,.3); }
+      50%      { box-shadow: 0 0 44px 14px rgba(239,68,68,.95),
+                             0 0 80px 24px rgba(239,68,68,.5); }
+    }
+
+    .cam-wrapper img { width: 100%; display: block; }
+
+    /* ── ALERT BANNER ── */
+    .alert-bar {
+      border-radius: 10px; padding: 14px 20px;
+      font-size: 1rem; font-weight: 700;
+      display: flex; align-items: center; gap: 12px;
+      transition: all .3s;
+    }
+    .alert-bar.ok {
+      background: #064e3b33; border: 1px solid var(--success); color: #6ee7b7;
+    }
+    .alert-bar.defect {
+      background: #7f1d1d55; border: 2px solid var(--danger); color: #fca5a5;
+      animation: alert-pulse 1s infinite;
+    }
+    @keyframes alert-pulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,.4); }
+      50%      { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
+    }
+    .alert-icon { font-size: 1.5rem; }
+    .alert-body { flex:1; }
+    .alert-body .label { font-size: 1.15rem; }
+    .alert-body .sub   { font-size: .8rem; opacity: .8; margin-top: 2px; }
+
+    /* ── METRICS ROW ── */
+    .metrics { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+    .metric-card {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 12px; padding: 16px 18px; text-align: center;
+    }
+    .metric-card .val  { font-size: 2rem; font-weight: 800; color: var(--accent); }
+    .metric-card .lbl  { font-size: .75rem; color: var(--muted); margin-top: 4px; }
+    .metric-card.danger .val { color: var(--danger); }
+
+    /* ── RIGHT PANEL ── */
+    .right-panel { display: flex; flex-direction: column; gap: 16px; }
+
+    .card {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 14px; padding: 18px 20px;
+    }
+    .card h3 { font-size: .95rem; font-weight: 600; color: var(--muted);
+               text-transform: uppercase; letter-spacing: .06em; margin-bottom: 14px; }
+
+    /* ── SESSION CONTROLS ── */
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn {
+      flex: 1; padding: 10px 16px; border: none; border-radius: 8px;
+      font-family: inherit; font-size: .9rem; font-weight: 600;
+      cursor: pointer; transition: opacity .2s, transform .1s;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-start  { background: linear-gradient(135deg,#059669,#10b981); color:#fff; }
+    .btn-stop   { background: linear-gradient(135deg,#b91c1c,#ef4444); color:#fff; }
+    .btn-dl     { background: linear-gradient(135deg,#1d4ed8,#3b82f6); color:#fff; }
+    .btn:disabled { opacity:.4; cursor:not-allowed; }
+
+    /* ── SESSION INFO ── */
+    .kv-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    .kv-table td { padding: 6px 8px; border-bottom: 1px solid var(--border); }
+    .kv-table td:first-child { color: var(--muted); width: 45%; }
+    .kv-table td:last-child  { font-weight: 600; }
+
+    /* ── EVENT LOG ── */
+    .event-log {
+      max-height: 290px; overflow-y: auto;
+      font-size: .78rem;
+    }
+    .event-log::-webkit-scrollbar { width: 4px; }
+    .event-log::-webkit-scrollbar-track { background: var(--panel); }
+    .event-log::-webkit-scrollbar-thumb { background: var(--border); border-radius:4px; }
+
+    .event-table { width: 100%; border-collapse: collapse; }
+    .event-table th {
+      background: #0e1827; color: var(--muted); font-weight: 600;
+      padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--border);
+      position: sticky; top: 0;
+    }
+    .event-table td { padding: 5px 8px; border-bottom: 1px solid #151f30; }
+    .event-table tr:nth-child(even) td { background: #0f1a2c; }
+    .event-table tr:hover td { background: #1a2740; }
+
+    .conf-high { color: #f87171; font-weight: 700; }
+    .conf-med  { color: #fb923c; font-weight: 600; }
+
+    .no-events { text-align:center; color: var(--muted); padding: 24px 0; font-size:.85rem; }
+
+    /* ── DIST CHART ── */
+    .dist-bars { display: flex; flex-direction: column; gap: 8px; }
+    .dist-row  { display: flex; align-items: center; gap: 8px; font-size: .8rem; }
+    .dist-name { width: 120px; color: var(--muted); truncate: ellipsis; overflow:hidden;
+                 white-space:nowrap; text-align:right; }
+    .dist-bar-wrap { flex:1; background: #0e1827; border-radius:4px; height:18px; }
+    .dist-bar {
+      height: 100%; border-radius:4px;
+      background: linear-gradient(90deg, #3b82f6, #6366f1);
+      transition: width .5s ease;
+    }
+    .dist-count { width: 28px; font-weight:700; color: var(--text); }
+
+    /* ── FOOTER ── */
+    footer { text-align:center; padding: 20px; color: var(--muted); font-size: .75rem; }
+  </style>
+</head>
+
+<body>
+
+<!-- ════════════════════════ TOPBAR ════════════════════════ -->
+<header>
+  <div class="logo">
+    <span style="font-size:1.8rem">🧵</span>
+    <h1>Fabric Defect Detector <span>v2 — Live</span></h1>
+  </div>
+  <div id="topStatus" class="status-pill">● DEFECT-FREE</div>
+</header>
+
+<!-- ════════════════════════ MAIN LAYOUT ════════════════════════ -->
+<div class="container">
+
+  <!-- ── LEFT: Camera + Alert + Metrics ── -->
+  <div class="cam-panel">
+
+    <!-- Live feed -->
+    <div class="cam-wrapper ok" id="camWrapper">
+      <img id="liveFrame" src="/video_feed" alt="Live Feed"/>
+    </div>
+
+    <!-- Alert banner -->
+    <div class="alert-bar ok" id="alertBar">
+      <span class="alert-icon" id="alertIcon">✅</span>
+      <div class="alert-body">
+        <div class="label" id="alertLabel">Defect-Free</div>
+        <div class="sub"  id="alertSub">Waiting for detection...</div>
+      </div>
+    </div>
+
+    <!-- Metrics -->
+    <div class="metrics">
+      <div class="metric-card">
+        <div class="val" id="mFrames">0</div>
+        <div class="lbl">Frames</div>
+      </div>
+      <div class="metric-card danger">
+        <div class="val" id="mDefects">0</div>
+        <div class="lbl">Defects</div>
+      </div>
+      <div class="metric-card">
+        <div class="val" id="mRate">0%</div>
+        <div class="lbl">Defect Rate</div>
+      </div>
+    </div>
+
+  </div><!-- /cam-panel -->
+
+  <!-- ── RIGHT PANEL ── -->
+  <div class="right-panel">
+
+    <!-- Session controls -->
+    <div class="card">
+      <h3>Session Control</h3>
+      <div class="btn-row">
+        <button class="btn btn-start" id="btnStart" onclick="startSession()">▶ Start Session</button>
+        <button class="btn btn-stop"  id="btnStop"  onclick="stopSession()" disabled>⏹ Stop &amp; Report</button>
+      </div>
+      <div id="dlRow" style="margin-top:10px;display:none;" class="btn-row">
+        <button class="btn btn-dl" id="btnPDF" onclick="downloadReport('pdf')">📥 Download PDF</button>
+        <button class="btn btn-dl" id="btnCSV" onclick="downloadReport('csv')">📄 Download CSV</button>
+      </div>
+    </div>
+
+    <!-- Session info -->
+    <div class="card">
+      <h3>Live Stats</h3>
+      <table class="kv-table">
+        <tr><td>Session ID</td>    <td id="infSession">—</td></tr>
+        <tr><td>Status</td>        <td id="infStatus">Idle</td></tr>
+        <tr><td>Start Time</td>    <td id="infStart">—</td></tr>
+        <tr><td>Elapsed</td>       <td id="infElapsed">—</td></tr>
+        <tr><td>Model</td>         <td id="infModel">—</td></tr>
+        <tr><td>FPS</td>           <td id="infFPS">—</td></tr>
+        <tr><td>Confidence</td>    <td id="infConf">—</td></tr>
+        <tr><td>BBox</td>          <td id="infBbox">—</td></tr>
+      </table>
+    </div>
+
+    <!-- Event log -->
+    <div class="card" style="flex:1;">
+      <h3>Event Log &nbsp;<span id="eventCount" style="color:var(--accent);font-size:.9em">0</span></h3>
+      <div class="event-log" id="eventLog">
+        <div class="no-events" id="noEvents">No defects logged yet</div>
+        <table class="event-table" id="eventTable" style="display:none;">
+          <thead>
+            <tr>
+              <th>#</th><th>Time</th><th>Class</th>
+              <th>Conf</th><th>Elapsed</th>
+            </tr>
+          </thead>
+          <tbody id="eventBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Class distribution -->
+    <div class="card">
+      <h3>Class Distribution</h3>
+      <div class="dist-bars" id="distBars">
+        <div class="no-events">No data yet</div>
+      </div>
+    </div>
+
+  </div><!-- /right-panel -->
+</div><!-- /container -->
+
+<footer>Fabric Defect Detector v2 &bull; MobileNetV2 + TFLite &bull; Flask MJPEG Stream</footer>
+
+<!-- ════════════════════════ JAVASCRIPT ════════════════════════ -->
+<script>
+  let _sessionId  = null;
+  let _sessionStart = null;
+  let _polling    = null;
+
+  // ── Session control ─────────────────────────────────────────
+  async function startSession() {
+    const res = await fetch('/api/session/start', {method:'POST'});
+    const d   = await res.json();
+    if (!d.ok) { alert('Error starting session'); return; }
+
+    _sessionId    = d.session_id;
+    _sessionStart = Date.now();
+
+    document.getElementById('btnStart').disabled = true;
+    document.getElementById('btnStop').disabled  = false;
+    document.getElementById('dlRow').style.display = 'none';
+    document.getElementById('infSession').textContent = _sessionId;
+    document.getElementById('infStatus').textContent  = '🟢 Recording';
+    document.getElementById('infStart').textContent   =
+      new Date().toLocaleTimeString();
+    document.getElementById('eventBody').innerHTML = '';
+    document.getElementById('noEvents').style.display = 'block';
+    document.getElementById('eventTable').style.display = 'none';
+    document.getElementById('eventCount').textContent = '0';
+    document.getElementById('distBars').innerHTML =
+      '<div class="no-events">No data yet</div>';
+  }
+
+  async function stopSession() {
+    const res = await fetch('/api/session/stop', {method:'POST'});
+    const d   = await res.json();
+
+    document.getElementById('btnStart').disabled = false;
+    document.getElementById('btnStop').disabled  = true;
+    document.getElementById('infStatus').textContent = '⏹ Stopped';
+
+    if (d.ok) {
+      document.getElementById('dlRow').style.display = 'flex';
+    } else {
+      alert('Report error: ' + (d.error||'unknown'));
+    }
+    _sessionStart = null;
+  }
+
+  function downloadReport(fmt) {
+    if (!_sessionId) return;
+    window.location.href = `/api/report/download/${_sessionId}/${fmt}`;
+  }
+
+  // ── Polling: updates every 600ms ────────────────────────────
+  function startPolling() {
+    if (_polling) clearInterval(_polling);
+    _polling = setInterval(refresh, 600);
+  }
+
+  async function refresh() {
+    let state, events;
+    try {
+      [state, events] = await Promise.all([
+        fetch('/api/state').then(r=>r.json()),
+        fetch('/api/events').then(r=>r.json()),
+      ]);
+    } catch(e) { return; }
+
+    const isDefect = state.is_defect;
+
+    // ── Camera border ──
+    const camWrap = document.getElementById('camWrapper');
+    camWrap.className = 'cam-wrapper ' + (isDefect ? 'defect' : 'ok');
+
+    // ── Top status pill ──
+    const pill = document.getElementById('topStatus');
+    if (isDefect) {
+      pill.textContent = '⚠ DEFECT';
+      pill.className   = 'status-pill defect';
+    } else {
+      pill.textContent = '● DEFECT-FREE';
+      pill.className   = 'status-pill';
+    }
+
+    // ── Alert banner ──
+    const bar   = document.getElementById('alertBar');
+    const icon  = document.getElementById('alertIcon');
+    const label = document.getElementById('alertLabel');
+    const sub   = document.getElementById('alertSub');
+    if (isDefect) {
+      bar.className = 'alert-bar defect';
+      icon.textContent = '⚠️';
+      label.textContent =
+        'DEFECT DETECTED — ' + state.pred_class.replace(/_/g,' ').toUpperCase();
+      const b = state.bbox;
+      sub.textContent =
+        `Confidence: ${(state.confidence*100).toFixed(1)}%  |  ` +
+        `Bbox: (${b[0]},${b[1]}) ${b[2]}×${b[3]}px`;
+    } else {
+      bar.className = 'alert-bar ok';
+      icon.textContent = '✅';
+      label.textContent = 'Defect-Free';
+      sub.textContent   =
+        `Confidence: ${(state.confidence*100).toFixed(1)}%`;
+    }
+
+    // ── Metrics ──
+    document.getElementById('mFrames').textContent  = state.frame_count;
+    document.getElementById('mDefects').textContent = state.defect_count;
+    document.getElementById('mRate').textContent    = state.defect_rate;
+
+    // ── Live stats table ──
+    document.getElementById('infFPS').textContent  = state.fps.toFixed(1);
+    document.getElementById('infConf').textContent =
+      (state.confidence*100).toFixed(1) + '%';
+    const bx = state.bbox;
+    document.getElementById('infBbox').textContent =
+      `(${bx[0]},${bx[1]}) ${bx[2]}×${bx[3]}`;
+    if (_sessionStart) {
+      const elapsed = Math.floor((Date.now() - _sessionStart)/1000);
+      const m = Math.floor(elapsed/60), s = elapsed%60;
+      document.getElementById('infElapsed').textContent =
+        `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    }
+
+    // ── Event log ──
+    document.getElementById('eventCount').textContent = events.length;
+    if (events.length > 0) {
+      document.getElementById('noEvents').style.display   = 'none';
+      document.getElementById('eventTable').style.display = '';
+      const tbody = document.getElementById('eventBody');
+      tbody.innerHTML = '';
+      // newest first
+      [...events].reverse().forEach(e => {
+        const conf = parseFloat(e.conf);
+        const cls  = conf >= 0.90 ? 'conf-high' : (conf >= 0.75 ? 'conf-med' : '');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${e.num}</td>
+          <td>${e.time.split('T')[1]||e.time}</td>
+          <td>${e.class.replace(/_/g,' ')}</td>
+          <td class="${cls}">${e.conf}</td>
+          <td>${e.elapsed}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ── Class distribution bars ──
+    if (events.length > 0) {
+      const counts = {};
+      events.forEach(e => { counts[e.class] = (counts[e.class]||0)+1; });
+      const max = Math.max(...Object.values(counts));
+      const COLORS = [
+        '#60a5fa','#f472b6','#34d399','#fb923c',
+        '#a78bfa','#22d3ee','#fbbf24','#f87171','#4ade80'
+      ];
+      const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+      const html = sorted.map(([cls,cnt], i) => `
+        <div class="dist-row">
+          <div class="dist-name">${cls.replace(/_/g,' ')}</div>
+          <div class="dist-bar-wrap">
+            <div class="dist-bar"
+                 style="width:${(cnt/max*100).toFixed(1)}%;background:${COLORS[i%COLORS.length]}"></div>
+          </div>
+          <div class="dist-count">${cnt}</div>
+        </div>`).join('');
+      document.getElementById('distBars').innerHTML = html;
+    }
+  }
+
+  // ── init ─────────────────────────────────────────────────────
+  window.onload = () => {
+    // populate model name from URL (optional)
+    document.getElementById('infModel').textContent =
+      location.search.includes('h5') ? 'H5 (Keras)' : 'TFLite (Quantized)';
+    startPolling();
+  };
+</script>
+</body>
+</html>
