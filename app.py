@@ -32,6 +32,7 @@ import config
 from model_utils import (
     make_predict_fn,
     localise_defect,
+    fast_localise_defect,
     PredictionSmoother,
     CameraStream,
     apply_clahe,
@@ -54,10 +55,6 @@ def _put_text(frame, text, org, scale=0.65, color=(220, 220, 220), thickness=2):
 def draw_hud(frame, pred_class, confidence, fps, session: SessionLogger, paused):
     H, W = frame.shape[:2]
     is_defect = pred_class != config.DEFECT_FREE_CLASS and confidence >= config.DEFECT_THRESHOLD
-
-    if is_defect:
-        cv2.rectangle(frame, (0, 0), (W - 1, H - 1),
-                      config.COLOR_DEFECT, config.BOX_THICKNESS)
 
     # ── top-left panel ────────────────────────────────────────────
     overlay = frame.copy()
@@ -92,12 +89,16 @@ def draw_hud(frame, pred_class, confidence, fps, session: SessionLogger, paused)
 
 def draw_bbox(frame, bbox, label, confidence):
     x, y, w, h = bbox
-    cv2.rectangle(frame, (x, y), (x + w, y + h), config.COLOR_DEFECT, 2)
+    cv2.rectangle(frame, (x, y), (x + w, y + h), config.COLOR_DEFECT, 3)
     tag = f"{label} {confidence:.0%}"
     (tw, th), bl = cv2.getTextSize(tag, FONT, 0.55, 2)
-    cv2.rectangle(frame, (x, y - th - bl - 4), (x + tw + 4, y),
+    # Place label above the box; if near top edge, put it inside
+    label_y = y - bl - 2 if y > th + bl + 6 else y + th + bl + 6
+    bg_y1 = label_y - th - bl if y > th + bl + 6 else y + 2
+    bg_y2 = label_y + 4 if y > th + bl + 6 else y + th + bl + 10
+    cv2.rectangle(frame, (x, bg_y1), (x + tw + 4, bg_y2),
                   config.COLOR_DEFECT, -1)
-    cv2.putText(frame, tag, (x + 2, y - bl - 2), FONT, 0.55,
+    cv2.putText(frame, tag, (x + 2, label_y), FONT, 0.55,
                 (255, 255, 255), 2, cv2.LINE_AA)
 
 
@@ -205,6 +206,8 @@ def run(model_type: str, source: str, source_path: str, webcam_index: int):
             if is_defect and config.ENABLE_LOCALISATION:
                 bbox, _ = localise_defect(processed, predict_fn,
                                           grid=config.LOCALISATION_GRID)
+            elif is_defect and config.ENABLE_FAST_BBOX:
+                bbox = fast_localise_defect(processed)
 
             cached_class = pred_class
             cached_conf  = confidence

@@ -26,6 +26,7 @@ import config
 from model_utils import (
     make_predict_fn,
     localise_defect,
+    fast_localise_defect,
     PredictionSmoother,
     CameraStream,
     apply_clahe,
@@ -74,14 +75,20 @@ def annotate(frame, pred_class, confidence, bbox, fps):
 
     if is_defect:
         x, y, w, h = bbox
-        cv2.rectangle(out, (x, y), (x+w, y+h), (0, 0, 255), 2)
+
+        # Draw the localised bounding box
+        cv2.rectangle(out, (x, y), (x+w, y+h), (0, 0, 255), 3)
+
+        # Label above the box (or inside if near top edge)
         tag = f"{pred_class}  {confidence:.0%}"
         (tw, th), bl = cv2.getTextSize(tag, FONT, 0.6, 2)
-        cv2.rectangle(out, (x, y-th-bl-4), (x+tw+6, y), (0, 0, 255), -1)
-        cv2.putText(out, tag, (x+3, y-bl-2), FONT, 0.6, (255,255,255), 2)
-
-        cv2.rectangle(out, (0, 0), (W-1, H-1), (0, 0, 255), 12)
-        cv2.rectangle(out, (6, 6), (W-7, H-7), (80, 80, 255), 4)
+        if y > th + bl + 6:
+            label_y = y - bl - 2
+            cv2.rectangle(out, (x, y-th-bl-4), (x+tw+6, y), (0,0,255), -1)
+        else:
+            label_y = y + th + bl + 6
+            cv2.rectangle(out, (x, y+2), (x+tw+6, y+th+bl+10), (0,0,255), -1)
+        cv2.putText(out, tag, (x+3, label_y), FONT, 0.6, (255,255,255), 2)
 
         banner = "DEFECT DETECTED"
         (bw, _), _ = cv2.getTextSize(banner, FONT, 1.1, 3)
@@ -155,6 +162,8 @@ def gen_frames(predict_fn, camera_index):
                 bbox_t, _ = localise_defect(processed, predict_fn,
                                             grid=config.LOCALISATION_GRID)
                 bbox = list(bbox_t)
+            elif is_defect and config.ENABLE_FAST_BBOX:
+                bbox = list(fast_localise_defect(processed))
 
             cached_class = pred_class
             cached_conf  = confidence

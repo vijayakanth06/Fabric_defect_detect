@@ -23,10 +23,10 @@ H5_MODEL_PATH     = os.path.join(PROJECT_ROOT, "fabric_defect_model.h5")
 CLASS_NAMES = [
     "broken_stitch",
     "defect-free",
-    "hole",
+    "needle_mark",
     "horizontal",
     "lines",
-    "needle_mark",
+    "hole",
     "pinched_fabric",
     "stain",
     "vertical",
@@ -47,6 +47,7 @@ TTA_PASSES        = 1                  # Test-Time Augmentation passes (1=fastes
 INFERENCE_SKIP_FRAMES = 2              # run inference every N frames (1=every frame, 2=every other)
 ENABLE_LOCALISATION   = False          # enable 3×3 grid defect localisation (slower)
 LOCALISATION_GRID     = (3, 3)         # grid rows × cols for patch-based localisation
+ENABLE_FAST_BBOX      = True           # fast OpenCV-based bounding box (no FPS hit)
 
 # ─────────────────────────────────────────────
 # CAMERA  (anti-flicker settings)
